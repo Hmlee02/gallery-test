@@ -1,7 +1,7 @@
 'use client'
 
 import { Canvas, useFrame } from '@react-three/fiber'
-import { useTexture } from '@react-three/drei'
+import { useTexture, OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { useMemo, useRef } from 'react'
 import type { Product } from '@/lib/products'
@@ -83,7 +83,17 @@ export default function ProductList3D({ products }: { products: Product[] }) {
     <div className="h-[80vh] w-full rounded-lg overflow-hidden">
       <Canvas camera={{ position: [0, 1.2, 6], fov: 55 }} gl={{ antialias: true }}>
         <ambientLight intensity={1} />
+        <directionalLight position={[5, 5, 5]} intensity={0.25} />
         <SceneProducts products={products} />
+        <OrbitControls
+          enableDamping
+          dampingFactor={0.05}
+          enablePan={false}
+          minDistance={3}
+          maxDistance={12}
+          autoRotate
+          autoRotateSpeed={0.5}
+        />
       </Canvas>
     </div>
   )
