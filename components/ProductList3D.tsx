@@ -78,9 +78,9 @@ function SceneProducts({ products }: { products: Product[] }) {
   )
 }
 
-export default function ProductList3D({ products }: { products: Product[] }) {
+export default function ProductList3D({ products, className }: { products: Product[]; className?: string }) {
   return (
-    <div className="h-full w-full rounded-lg overflow-hidden">
+    <div className={`w-full rounded-lg overflow-hidden ${className ?? 'h-full'}`}>
       <Canvas camera={{ position: [0, 1.2, 6], fov: 55 }} gl={{ antialias: true }}>
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} intensity={0.25} />
