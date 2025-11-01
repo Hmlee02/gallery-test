@@ -163,7 +163,11 @@ function SceneProducts({ products }: { products: Product[] }) {
         const cardHeight = 1.0 * scale
         return (
           <group key={p.slug} position={pos} rotation={rot}>
-            <Card texture={tex} position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} onClick={handleCardClick(p.slug)} baseScale={scale} />
+            <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} onClick={handleCardClick(p.slug)} baseScale={scale} />
+            <mesh position={[0, -cardHeight * 0.65, 0]}>
+              <planeGeometry args={[1.8 * scale, 0.35 * scale]} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.35} />
+            </mesh>
           </group>
         )
       })}
