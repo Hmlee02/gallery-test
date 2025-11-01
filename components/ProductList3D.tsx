@@ -51,9 +51,12 @@ function SceneProducts({ products }: { products: Product[] }) {
   const draggingRef = useRef(false)
   const lastXRef = useRef(0)
   const movedRef = useRef(0)
-  const { gl } = useThree()
+  const { gl, size } = useThree()
   const items = useMemo(() => {
-    const r = 4
+    const baseRadius = 3.2
+    const aspect = size.width > 0 ? size.width / Math.max(1, size.height) : 1
+    // widen ring on wider screens up to 1.6x
+    const r = baseRadius * Math.min(1.6, Math.max(1, aspect))
     return products.map((p, i) => {
       const angle = (i / Math.max(products.length, 1)) * Math.PI * 2
       const x = Math.cos(angle) * r
@@ -61,7 +64,7 @@ function SceneProducts({ products }: { products: Product[] }) {
       const rotY = -angle + Math.PI
       return { p, pos: [x, 0, z] as [number, number, number], rot: [0, rotY, 0] as [number, number, number] }
     })
-  }, [products])
+  }, [products, size.width, size.height])
 
   // Input handlers on the canvas element
   useEffect(() => {
@@ -149,8 +152,8 @@ function SceneProducts({ products }: { products: Product[] }) {
 
 export default function ProductList3D({ products, className }: { products: Product[]; className?: string }) {
   return (
-    <div className={`w-full rounded-lg overflow-hidden ${className ?? 'h-full'}`}>
-  <Canvas camera={{ position: [0, 0, 6], fov: 55 }} gl={{ antialias: true }}>
+    <div className={`w-full h-full overflow-hidden ${className ?? ''}`}>
+      <Canvas camera={{ position: [0, 0, 6], fov: 55 }} gl={{ antialias: true }} style={{ width: '100%', height: '100%', display: 'block' }}>
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} intensity={0.25} />
         <SceneProducts products={products} />
