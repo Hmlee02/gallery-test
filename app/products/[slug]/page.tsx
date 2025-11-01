@@ -3,8 +3,12 @@ import Link from 'next/link'
 import { getProductBySlug, formatPrice } from '@/lib/products'
 import { notFound } from 'next/navigation'
 
-export default function ProductPage({ params }: { params: { slug: string } }) {
-  const { slug } = params
+export default async function ProductPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
   const product = getProductBySlug(slug)
   if (!product) return notFound()
 
