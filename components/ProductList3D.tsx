@@ -12,12 +12,14 @@ function Card({
   rotation,
   onClick,
   baseScale = 1,
+  onHoverChange,
 }: {
   texture: THREE.Texture
   position: [number, number, number]
   rotation: [number, number, number]
   onClick: () => void
   baseScale?: number
+  onHoverChange?: (hover: boolean) => void
 }) {
   const mesh = useRef<THREE.Mesh>(null)
   const hovered = useRef(false)
@@ -46,8 +48,14 @@ function Card({
       position={position}
       rotation={rotation}
       onClick={onClick}
-      onPointerEnter={() => (hovered.current = true)}
-      onPointerLeave={() => (hovered.current = false)}
+      onPointerEnter={() => {
+        hovered.current = true
+        onHoverChange?.(true)
+      }}
+      onPointerLeave={() => {
+        hovered.current = false
+        onHoverChange?.(false)
+      }}
     >
       <planeGeometry args={[1.4, 1.0, 1, 1]} />
       <meshBasicMaterial map={texture} toneMapped={false} side={THREE.DoubleSide} />
@@ -64,6 +72,7 @@ function SceneProducts({ products }: { products: Product[] }) {
   const lastXRef = useRef(0)
   const movedRef = useRef(0)
   const { gl, size, camera } = useThree()
+  const targetAngleRef = useRef<number | null>(null)
   // layout metrics derived from camera frustum
   const layout = useMemo(() => {
     let visibleWidth = 8
@@ -98,7 +107,7 @@ function SceneProducts({ products }: { products: Product[] }) {
       const x = Math.cos(angle) * r
       const z = Math.sin(angle) * r
       const rotY = -angle + Math.PI
-      return { p, pos: [x, 0, z] as [number, number, number], rot: [0, rotY, 0] as [number, number, number] }
+      return { p, pos: [x, 0, z] as [number, number, number], rot: [0, rotY, 0] as [number, number, number], angle }
     })
   }, [products, layout.radius])
 
@@ -110,12 +119,14 @@ function SceneProducts({ products }: { products: Product[] }) {
     const wheel = (e: WheelEvent) => {
       e.preventDefault()
       velocityRef.current += (e.deltaY > 0 ? 1 : -1) * 0.01
+      targetAngleRef.current = null
     }
 
     const down = (e: PointerEvent) => {
       draggingRef.current = true
       lastXRef.current = e.clientX
       movedRef.current = 0
+  targetAngleRef.current = null
       // capture pointer to continue receiving move events
       ;(e.target as Element).setPointerCapture?.(e.pointerId)
     }
@@ -150,9 +161,21 @@ function SceneProducts({ products }: { products: Product[] }) {
 
   // Animate ring rotation with damping
   useFrame((_s, dt) => {
-    angleRef.current += velocityRef.current * dt * 60 * 0.02
-    // damping
-    velocityRef.current *= 0.95
+    // If a target angle is set (e.g., hover to center), ease toward it
+    if (!draggingRef.current && targetAngleRef.current != null) {
+      const current = angleRef.current
+      const target = targetAngleRef.current
+      // shortest angular delta in range [-PI, PI]
+      let delta = target - current
+      delta = ((delta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI
+      angleRef.current += delta * Math.min(1, dt * 6)
+      // damp velocity while targeting
+      velocityRef.current *= 0.9
+    } else {
+      // free spin inertia
+      angleRef.current += velocityRef.current * dt * 60 * 0.02
+      velocityRef.current *= 0.95
+    }
     if (ringRef.current) {
       ringRef.current.rotation.y = angleRef.current
     }
@@ -166,14 +189,23 @@ function SceneProducts({ products }: { products: Product[] }) {
 
   return (
     <group ref={ringRef}>
-      {items.map(({ p, pos, rot }, i) => {
+      {items.map(({ p, pos, rot, angle }, i) => {
         const tex = Array.isArray(textures) ? (textures as THREE.Texture[])[i] : (textures as any)
         if (!tex) return null
         const scale = layout.baseScale
         const cardHeight = 1.0 * scale
+        const setHover = (hover: boolean) => {
+          if (hover) {
+            // center this item: angle + ringAngle = PI/2 -> ringAngle = PI/2 - angle
+            targetAngleRef.current = Math.PI / 2 - angle
+          } else {
+            // release target, allow inertia or other interaction
+            targetAngleRef.current = null
+          }
+        }
         return (
           <group key={p.slug} position={pos} rotation={rot}>
-            <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} onClick={handleCardClick(p.slug)} baseScale={scale} />
+            <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} onClick={handleCardClick(p.slug)} baseScale={scale} onHoverChange={setHover} />
             <Text
               position={[0, -cardHeight * 0.65, 0.01]}
               fontSize={0.12 * scale}
