@@ -1,11 +1,12 @@
 import Image from 'next/image'
 import Link from 'next/link'
+import { getProductBySlug, formatPrice } from '@/lib/products'
+import { notFound } from 'next/navigation'
 
 export default function ProductPage({ params }: { params: { slug: string } }) {
   const { slug } = params
-  // For demo: map slug to image in public folder by index or name
-  // Expect slugs like "1", "2", or file names without extension
-  const imgSrc = `/${slug}.webp`
+  const product = getProductBySlug(slug)
+  if (!product) return notFound()
 
   return (
     <main className="min-h-screen container mx-auto p-6">
@@ -15,20 +16,36 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
 
       <div className="grid md:grid-cols-2 gap-8 items-start">
         <div className="relative w-full aspect-[4/3] overflow-hidden rounded-lg bg-black/5">
-          {/* Using next/image is optional; falls back to public file */}
-          <Image src={imgSrc} alt={`Product ${slug}`} fill className="object-cover" />
+          <Image src={product.image} alt={product.title} fill className="object-cover" />
         </div>
 
         <section>
-          <h1 className="text-3xl font-semibold mb-3">Product {slug}</h1>
-          <p className="text-muted-foreground mb-6">
-            This is a placeholder product page for item {slug}. Replace with real data
-            and connect to your commerce backend.
-          </p>
+          <h1 className="text-3xl font-semibold mb-2">{product.title}</h1>
+          <div className="text-xl mb-4">{formatPrice(product.price)}</div>
+          <p className="text-muted-foreground mb-6">{product.description}</p>
 
-          <div className="space-y-2">
-            <div className="text-lg">$49.00</div>
+          {product.specs && (
+            <div className="mb-6">
+              <h2 className="font-medium mb-2">Specifications</h2>
+              <ul className="list-disc ml-5 space-y-1 text-sm">
+                {Object.entries(product.specs).map(([k, v]) => (
+                  <li key={k}><span className="font-medium">{k}:</span> {v}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {product.tags && (
+            <div className="mb-6 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              {product.tags.map((t) => (
+                <span key={t} className="px-2 py-1 rounded bg-black/5 dark:bg-white/10">#{t}</span>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-3">
             <button className="px-4 py-2 rounded-md bg-black text-white">Add to cart</button>
+            <button className="px-4 py-2 rounded-md border">Buy now</button>
           </div>
         </section>
       </div>
