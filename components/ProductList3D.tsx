@@ -11,11 +11,13 @@ function Card({
   position,
   rotation,
   onClick,
+  baseScale = 1,
 }: {
   texture: THREE.Texture
   position: [number, number, number]
   rotation: [number, number, number]
   onClick: () => void
+  baseScale?: number
 }) {
   const mesh = useRef<THREE.Mesh>(null)
   const hovered = useRef(false)
@@ -23,7 +25,7 @@ function Card({
   useFrame((_s, dt) => {
     if (!mesh.current) return
     // subtle float on hover
-    const target = hovered.current ? 1.02 : 1
+    const target = (hovered.current ? 1.02 : 1) * baseScale
     mesh.current.scale.x = THREE.MathUtils.lerp(mesh.current.scale.x, target, 6 * dt)
     mesh.current.scale.y = THREE.MathUtils.lerp(mesh.current.scale.y, target, 6 * dt)
   })
@@ -52,20 +54,26 @@ function SceneProducts({ products }: { products: Product[] }) {
   const lastXRef = useRef(0)
   const movedRef = useRef(0)
   const { gl, size, camera } = useThree()
-  const items = useMemo(() => {
-    // Compute the visible width at z=0 for the current perspective camera
-    let r = 3.2
+  // layout metrics derived from camera frustum
+  const layout = useMemo(() => {
+    let visibleWidth = 8
     if ((camera as any).isPerspectiveCamera) {
       const cam = camera as THREE.PerspectiveCamera
-      const zDepth = Math.max(0.0001, cam.position.z) // distance from camera to z=0 plane
+      const zDepth = Math.max(0.0001, cam.position.z)
       const vFOV = THREE.MathUtils.degToRad(cam.fov)
       const visibleHeight = 2 * Math.tan(vFOV / 2) * zDepth
-      const visibleWidth = visibleHeight * (size.width > 0 ? size.width / Math.max(1, size.height) : cam.aspect)
-      const cardWidth = 1.4
-      const gutter = 0.2
-      // Make ring touch near the edges without clipping cards
-      r = Math.max(2.5, (visibleWidth / 2) - (cardWidth / 2) - gutter)
+      visibleWidth = visibleHeight * (size.width > 0 ? size.width / Math.max(1, size.height) : cam.aspect)
     }
+    const gutter = 0.25
+    const baseCardWidth = 1.4
+    const approxVisible = Math.min(products.length, Math.max(4, Math.floor(products.length * 0.5)))
+    const desiredCardWorldWidth = THREE.MathUtils.clamp((visibleWidth - gutter * 2) / approxVisible, 0.9, 2.2)
+    const baseScale = desiredCardWorldWidth / baseCardWidth
+    const radius = Math.max(2.5, (visibleWidth / 2) - (desiredCardWorldWidth / 2) - gutter)
+    return { visibleWidth, gutter, desiredCardWorldWidth, baseScale, radius }
+  }, [camera, size.width, size.height, products.length])
+  const items = useMemo(() => {
+    const r = layout.radius
     return products.map((p, i) => {
       const angle = (i / Math.max(products.length, 1)) * Math.PI * 2
       const x = Math.cos(angle) * r
@@ -73,7 +81,7 @@ function SceneProducts({ products }: { products: Product[] }) {
       const rotY = -angle + Math.PI
       return { p, pos: [x, 0, z] as [number, number, number], rot: [0, rotY, 0] as [number, number, number] }
     })
-  }, [products, size.width, size.height, (camera as any).type, (camera as any).position?.z])
+  }, [products, layout.radius])
 
   // Input handlers on the canvas element
   useEffect(() => {
@@ -142,14 +150,14 @@ function SceneProducts({ products }: { products: Product[] }) {
       {items.map(({ p, pos, rot }, i) => {
         const tex = Array.isArray(textures) ? (textures as THREE.Texture[])[i] : (textures as any)
         if (!tex) return null
-        const aspect = tex.image ? tex.image.width / tex.image.height : 1
-        const sy = aspect > 1 ? 1.6 : 1.6 / aspect
+        const scale = layout.baseScale
+        const cardHeight = 1.0 * scale
         return (
           <group key={p.slug} position={pos} rotation={rot}>
-            <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} onClick={handleCardClick(p.slug)} />
+            <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} onClick={handleCardClick(p.slug)} baseScale={scale} />
             {/* simple label */}
-            <mesh position={[0, -sy * 0.65, 0]}>
-              <planeGeometry args={[1.8, 0.35]} />
+            <mesh position={[0, -cardHeight * 0.65, 0]}>
+              <planeGeometry args={[1.8 * scale, 0.35 * scale]} />
               <meshBasicMaterial color="#000000" transparent opacity={0.35} />
             </mesh>
           </group>
