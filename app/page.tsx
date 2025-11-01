@@ -1,5 +1,4 @@
 import InfiniteGallery from '@/components/InfiniteGallery';
-import { Button } from '@/components/ui/button';
 
 export default function Home() {
 	const sampleImages = [
@@ -30,17 +29,6 @@ export default function Home() {
 			</div>
 
 			<div className="text-center fixed bottom-10 left-0 right-0 font-mono uppercase text-[11px] font-semibold">
-				<div className="flex justify-center gap-2 mb-4">
-					<Button variant="outline" size="sm" className="bg-black/20 backdrop-blur-sm border-white/20 text-white hover:bg-white/10">
-						Pause
-					</Button>
-					<Button variant="outline" size="sm" className="bg-black/20 backdrop-blur-sm border-white/20 text-white hover:bg-white/10">
-						Reset
-					</Button>
-					<Button variant="outline" size="sm" className="bg-black/20 backdrop-blur-sm border-white/20 text-white hover:bg-white/10">
-						Fullscreen
-					</Button>
-				</div>
 				<p>Use mouse wheel, arrow keys, or touch to navigate</p>
 				<p className=" opacity-60">
 					Auto-play resumes after 3 seconds of inactivity
