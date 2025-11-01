@@ -74,9 +74,11 @@ function SceneProducts({ products }: { products: Product[] }) {
     const gutter = 0.25
     const baseCardWidth = 1.4
     const approxVisible = Math.min(products.length, Math.max(4, Math.floor(products.length * 0.5)))
-    const desiredCardWorldWidth = THREE.MathUtils.clamp((visibleWidth - gutter * 2) / approxVisible, 0.9, 2.2)
+    // Fill factor < 1.0 makes the ring/cards appear smaller on screen
+    const fill = 0.8
+    const desiredCardWorldWidth = THREE.MathUtils.clamp(((visibleWidth * fill) - gutter * 2) / approxVisible, 0.9, 2.2)
     const baseScale = desiredCardWorldWidth / baseCardWidth
-    const radius = Math.max(2.5, (visibleWidth / 2) - (desiredCardWorldWidth / 2) - gutter)
+    const radius = Math.max(2.5, ((visibleWidth * fill) / 2) - (desiredCardWorldWidth / 2) - gutter)
     return { visibleWidth, gutter, desiredCardWorldWidth, baseScale, radius }
   }, [camera, size.width, size.height, products.length])
   const items = useMemo(() => {
@@ -174,12 +176,12 @@ export default function ProductList3D({ products, className }: { products: Produ
     <div className={`w-full overflow-hidden ${className ?? ''}`} style={{ height: '100vh' }}>
       <Canvas
         orthographic
-        camera={{ position: [0, 10, 0], zoom: 120, near: -1000, far: 1000 }}
+        camera={{ position: [0, 10, 4], zoom: 110, near: -1000, far: 1000 }}
         gl={{ antialias: true }}
         style={{ width: '100%', height: '100%', display: 'block' }}
         onCreated={({ camera }) => {
           const cam = camera as THREE.OrthographicCamera
-          cam.up.set(0, 0, -1) // so positive Y is up on screen, looking down -Y
+          cam.up.set(0, 1, 0)
           cam.lookAt(0, 0, 0)
         }}
       >
