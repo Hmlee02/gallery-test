@@ -80,7 +80,7 @@ function SceneProducts({ products }: { products: Product[] }) {
 
 export default function ProductList3D({ products }: { products: Product[] }) {
   return (
-    <div className="h-[80vh] w-full rounded-lg overflow-hidden">
+    <div className="h-full w-full rounded-lg overflow-hidden">
       <Canvas camera={{ position: [0, 1.2, 6], fov: 55 }} gl={{ antialias: true }}>
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} intensity={0.25} />
