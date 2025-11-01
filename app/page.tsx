@@ -3,14 +3,14 @@ import { Button } from '@/components/ui/button';
 
 export default function Home() {
 	const sampleImages = [
-		{ src: '/1.webp', alt: 'Image 1' },
-		{ src: '/2.webp', alt: 'Image 2' },
-		{ src: '/3.webp', alt: 'Image 3' },
-		{ src: '/4.webp', alt: 'Image 4' },
-		{ src: '/5.webp', alt: 'Image 5' },
-		{ src: '/6.webp', alt: 'Image 6' },
-		{ src: '/7.webp', alt: 'Image 7' },
-		{ src: '/8.webp', alt: 'Image 8' },
+		{ src: '/1.webp', alt: 'Image 1', href: '/products/1' },
+		{ src: '/2.webp', alt: 'Image 2', href: '/products/2' },
+		{ src: '/3.webp', alt: 'Image 3', href: '/products/3' },
+		{ src: '/4.webp', alt: 'Image 4', href: '/products/4' },
+		{ src: '/5.webp', alt: 'Image 5', href: '/products/5' },
+		{ src: '/6.webp', alt: 'Image 6', href: '/products/6' },
+		{ src: '/7.webp', alt: 'Image 7', href: '/products/7' },
+		{ src: '/8.webp', alt: 'Image 8', href: '/products/8' },
 	];
 
 	return (

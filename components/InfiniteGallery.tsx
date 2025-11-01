@@ -6,7 +6,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
-type ImageItem = string | { src: string; alt?: string };
+type ImageItem = string | { src: string; alt?: string; href?: string };
 
 interface FadeSettings {
 	/** Fade in range as percentage of depth range (0-1) */
@@ -169,11 +169,15 @@ function ImagePlane({
 	position,
 	scale,
 	material,
+	onClick,
+	isClickable = false,
 }: {
 	texture: THREE.Texture;
 	position: [number, number, number];
 	scale: [number, number, number];
 	material: THREE.ShaderMaterial;
+	onClick?: () => void;
+	isClickable?: boolean;
 }) {
 	const meshRef = useRef<THREE.Mesh>(null);
 	const [isHovered, setIsHovered] = useState(false);
@@ -190,6 +194,18 @@ function ImagePlane({
 		}
 	}, [material, isHovered]);
 
+	// Update cursor when hover state changes for clickable items
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
+		if (isHovered && isClickable) {
+			document.body.style.cursor = 'pointer';
+			return () => {
+				document.body.style.cursor = 'auto';
+			};
+		}
+		return;
+	}, [isHovered, isClickable]);
+
 	return (
 		<mesh
 			ref={meshRef}
@@ -198,6 +214,9 @@ function ImagePlane({
 			material={material}
 			onPointerEnter={() => setIsHovered(true)}
 			onPointerLeave={() => setIsHovered(false)}
+			onClick={() => {
+				if (onClick) onClick();
+			}}
 		>
 			<planeGeometry args={[1, 1, 32, 32]} />
 		</mesh>
@@ -476,6 +495,7 @@ function GalleryScene({
 			{planesData.current.map((plane, i) => {
 				const texture = textures[plane.imageIndex];
 				const material = materials[i];
+				const img = normalizedImages[plane.imageIndex];
 
 				if (!texture || !material) return null;
 
@@ -495,6 +515,18 @@ function GalleryScene({
 						position={[plane.x, plane.y, worldZ]} // Position planes relative to camera center
 						scale={scale}
 						material={material}
+						isClickable={Boolean(img?.href)}
+						onClick={() => {
+							if (img && (img as any).href) {
+								const href = (img as { href?: string }).href;
+								if (href) {
+									// Navigate in the same tab
+									if (typeof window !== 'undefined') {
+										window.location.href = href;
+									}
+								}
+							}
+						}}
 					/>
 				);
 			})}
@@ -519,12 +551,13 @@ function FallbackGallery({ images }: { images: ImageItem[] }) {
 			</p>
 			<div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
 				{normalizedImages.map((img, i) => (
-					<img
-						key={i}
-						src={img.src || '/placeholder.svg'}
-						alt={img.alt}
-						className="w-full h-32 object-cover rounded"
-					/>
+					<a key={i} href={(img as any).href || '#'} className="block">
+						<img
+							src={img.src || '/placeholder.svg'}
+							alt={img.alt}
+							className="w-full h-32 object-cover rounded"
+						/>
+					</a>
 				))}
 			</div>
 		</div>
