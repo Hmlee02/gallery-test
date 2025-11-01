@@ -176,7 +176,7 @@ export default function ProductList3D({ products, className }: { products: Produ
     <div className={`w-full overflow-hidden ${className ?? ''}`} style={{ height: '100vh' }}>
       <Canvas
         orthographic
-        camera={{ position: [0, 10, 4], zoom: 110, near: -1000, far: 1000 }}
+        camera={{ position: [0, 8, 12], zoom: 110, near: -1000, far: 1000 }}
         gl={{ antialias: true }}
         style={{ width: '100%', height: '100%', display: 'block' }}
         onCreated={({ camera }) => {
