@@ -43,10 +43,8 @@ function Card({
   )
 }
 
-export default function ProductList3D({ products }: { products: Product[] }) {
+function SceneProducts({ products }: { products: Product[] }) {
   const textures = useTexture(products.map((p) => p.image))
-
-  // Arrange products around a ring
   const items = useMemo(() => {
     const r = 4
     return products.map((p, i) => {
@@ -59,28 +57,33 @@ export default function ProductList3D({ products }: { products: Product[] }) {
   }, [products])
 
   return (
+    <group>
+      {items.map(({ p, pos, rot }, i) => {
+        const tex = Array.isArray(textures) ? (textures as THREE.Texture[])[i] : (textures as any)
+        if (!tex) return null
+        const aspect = tex.image ? tex.image.width / tex.image.height : 1
+        const sy = aspect > 1 ? 1.6 : 1.6 / aspect
+        return (
+          <group key={p.slug} position={pos} rotation={rot}>
+            <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} href={`/products/${p.slug}`} />
+            {/* simple label */}
+            <mesh position={[0, -sy * 0.65, 0]}>
+              <planeGeometry args={[1.8, 0.35]} />
+              <meshBasicMaterial color="#000000" transparent opacity={0.35} />
+            </mesh>
+          </group>
+        )
+      })}
+    </group>
+  )
+}
+
+export default function ProductList3D({ products }: { products: Product[] }) {
+  return (
     <div className="h-[80vh] w-full rounded-lg overflow-hidden">
       <Canvas camera={{ position: [0, 1.2, 6], fov: 55 }} gl={{ antialias: true }}>
         <ambientLight intensity={1} />
-        <group>
-          {items.map(({ p, pos, rot }, i) => {
-            const tex = Array.isArray(textures) ? (textures as THREE.Texture[])[i] : (textures as any)
-            if (!tex) return null
-            const aspect = tex.image ? tex.image.width / tex.image.height : 1
-            const sx = aspect > 1 ? 1.6 * aspect : 1.6
-            const sy = aspect > 1 ? 1.6 : 1.6 / aspect
-            return (
-              <group key={p.slug} position={pos} rotation={rot}>
-                <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} href={`/products/${p.slug}`} />
-                {/* simple label */}
-                <mesh position={[0, -sy * 0.65, 0]}>
-                  <planeGeometry args={[1.8, 0.35]} />
-                  <meshBasicMaterial color="#000000" transparent opacity={0.35} />
-                </mesh>
-              </group>
-            )
-          })}
-        </group>
+        <SceneProducts products={products} />
       </Canvas>
     </div>
   )
