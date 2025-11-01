@@ -1,21 +1,21 @@
 'use client'
 
-import { Canvas, useFrame } from '@react-three/fiber'
-import { useTexture, OrbitControls } from '@react-three/drei'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { useTexture } from '@react-three/drei'
 import * as THREE from 'three'
-import { useMemo, useRef } from 'react'
+import { useMemo, useRef, useEffect } from 'react'
 import type { Product } from '@/lib/products'
 
 function Card({
   texture,
   position,
   rotation,
-  href,
+  onClick,
 }: {
   texture: THREE.Texture
   position: [number, number, number]
   rotation: [number, number, number]
-  href: string
+  onClick: () => void
 }) {
   const mesh = useRef<THREE.Mesh>(null)
   const hovered = useRef(false)
@@ -33,7 +33,7 @@ function Card({
       ref={mesh}
       position={position}
       rotation={rotation}
-      onClick={() => (window.location.href = href)}
+      onClick={onClick}
       onPointerEnter={() => (hovered.current = true)}
       onPointerLeave={() => (hovered.current = false)}
     >
@@ -45,6 +45,13 @@ function Card({
 
 function SceneProducts({ products }: { products: Product[] }) {
   const textures = useTexture(products.map((p) => p.image))
+  const ringRef = useRef<THREE.Group>(null)
+  const angleRef = useRef(0)
+  const velocityRef = useRef(0)
+  const draggingRef = useRef(false)
+  const lastXRef = useRef(0)
+  const movedRef = useRef(0)
+  const { gl } = useThree()
   const items = useMemo(() => {
     const r = 4
     return products.map((p, i) => {
@@ -56,8 +63,70 @@ function SceneProducts({ products }: { products: Product[] }) {
     })
   }, [products])
 
+  // Input handlers on the canvas element
+  useEffect(() => {
+    const el = gl.domElement
+    if (!el) return
+
+    const wheel = (e: WheelEvent) => {
+      e.preventDefault()
+      velocityRef.current += (e.deltaY > 0 ? 1 : -1) * 0.01
+    }
+
+    const down = (e: PointerEvent) => {
+      draggingRef.current = true
+      lastXRef.current = e.clientX
+      movedRef.current = 0
+      // capture pointer to continue receiving move events
+      ;(e.target as Element).setPointerCapture?.(e.pointerId)
+    }
+    const move = (e: PointerEvent) => {
+      if (!draggingRef.current) return
+      const dx = e.clientX - lastXRef.current
+      lastXRef.current = e.clientX
+      movedRef.current += Math.abs(dx)
+      angleRef.current += dx * 0.005
+    }
+    const up = (_e: PointerEvent) => {
+      draggingRef.current = false
+      // give a bit of inertia based on last movement
+      const sign = Math.sign(lastXRef.current)
+      velocityRef.current += sign * 0.0 // minimal kick; main rotation already applied
+    }
+
+    el.addEventListener('wheel', wheel, { passive: false })
+    el.addEventListener('pointerdown', down)
+    el.addEventListener('pointermove', move)
+    el.addEventListener('pointerup', up)
+    el.addEventListener('pointercancel', up)
+
+    return () => {
+      el.removeEventListener('wheel', wheel as any)
+      el.removeEventListener('pointerdown', down as any)
+      el.removeEventListener('pointermove', move as any)
+      el.removeEventListener('pointerup', up as any)
+      el.removeEventListener('pointercancel', up as any)
+    }
+  }, [gl])
+
+  // Animate ring rotation with damping
+  useFrame((_s, dt) => {
+    angleRef.current += velocityRef.current * dt * 60 * 0.02
+    // damping
+    velocityRef.current *= 0.95
+    if (ringRef.current) {
+      ringRef.current.rotation.y = angleRef.current
+    }
+  })
+
+  const handleCardClick = (slug: string) => () => {
+    // If user dragged more than a small threshold, suppress click
+    if (draggingRef.current || movedRef.current > 5) return
+    if (typeof window !== 'undefined') window.location.href = `/products/${slug}`
+  }
+
   return (
-    <group>
+    <group ref={ringRef}>
       {items.map(({ p, pos, rot }, i) => {
         const tex = Array.isArray(textures) ? (textures as THREE.Texture[])[i] : (textures as any)
         if (!tex) return null
@@ -65,7 +134,7 @@ function SceneProducts({ products }: { products: Product[] }) {
         const sy = aspect > 1 ? 1.6 : 1.6 / aspect
         return (
           <group key={p.slug} position={pos} rotation={rot}>
-            <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} href={`/products/${p.slug}`} />
+            <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} onClick={handleCardClick(p.slug)} />
             {/* simple label */}
             <mesh position={[0, -sy * 0.65, 0]}>
               <planeGeometry args={[1.8, 0.35]} />
@@ -85,15 +154,6 @@ export default function ProductList3D({ products, className }: { products: Produ
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} intensity={0.25} />
         <SceneProducts products={products} />
-        <OrbitControls
-          enableDamping
-          dampingFactor={0.05}
-          enablePan={false}
-          minDistance={3}
-          maxDistance={12}
-          autoRotate
-          autoRotateSpeed={0.5}
-        />
       </Canvas>
     </div>
   )
