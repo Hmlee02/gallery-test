@@ -51,12 +51,21 @@ function SceneProducts({ products }: { products: Product[] }) {
   const draggingRef = useRef(false)
   const lastXRef = useRef(0)
   const movedRef = useRef(0)
-  const { gl, size } = useThree()
+  const { gl, size, camera } = useThree()
   const items = useMemo(() => {
-    const baseRadius = 3.2
-    const aspect = size.width > 0 ? size.width / Math.max(1, size.height) : 1
-    // widen ring on wider screens up to 1.6x
-    const r = baseRadius * Math.min(1.6, Math.max(1, aspect))
+    // Compute the visible width at z=0 for the current perspective camera
+    let r = 3.2
+    if ((camera as any).isPerspectiveCamera) {
+      const cam = camera as THREE.PerspectiveCamera
+      const zDepth = Math.max(0.0001, cam.position.z) // distance from camera to z=0 plane
+      const vFOV = THREE.MathUtils.degToRad(cam.fov)
+      const visibleHeight = 2 * Math.tan(vFOV / 2) * zDepth
+      const visibleWidth = visibleHeight * (size.width > 0 ? size.width / Math.max(1, size.height) : cam.aspect)
+      const cardWidth = 1.4
+      const gutter = 0.2
+      // Make ring touch near the edges without clipping cards
+      r = Math.max(2.5, (visibleWidth / 2) - (cardWidth / 2) - gutter)
+    }
     return products.map((p, i) => {
       const angle = (i / Math.max(products.length, 1)) * Math.PI * 2
       const x = Math.cos(angle) * r
@@ -64,7 +73,7 @@ function SceneProducts({ products }: { products: Product[] }) {
       const rotY = -angle + Math.PI
       return { p, pos: [x, 0, z] as [number, number, number], rot: [0, rotY, 0] as [number, number, number] }
     })
-  }, [products, size.width, size.height])
+  }, [products, size.width, size.height, (camera as any).type, (camera as any).position?.z])
 
   // Input handlers on the canvas element
   useEffect(() => {
