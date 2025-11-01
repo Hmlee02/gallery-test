@@ -1,10 +1,10 @@
 'use client'
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useTexture } from '@react-three/drei'
+import { useTexture, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import { useMemo, useRef, useEffect } from 'react'
-import type { Product } from '@/lib/products'
+import { type Product, formatPrice } from '@/lib/products'
 
 function Card({
   texture,
@@ -164,10 +164,18 @@ function SceneProducts({ products }: { products: Product[] }) {
         return (
           <group key={p.slug} position={pos} rotation={rot}>
             <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} onClick={handleCardClick(p.slug)} baseScale={scale} />
-            <mesh position={[0, -cardHeight * 0.65, 0]}>
-              <planeGeometry args={[1.8 * scale, 0.35 * scale]} />
-              <meshBasicMaterial color="#000000" transparent opacity={0.35} />
-            </mesh>
+            <Text
+              position={[0, -cardHeight * 0.65, 0.01]}
+              fontSize={0.12 * scale}
+              anchorX="center"
+              anchorY="top"
+              maxWidth={1.6 * scale}
+              color="#111111"
+              outlineWidth={0.008 * scale}
+              outlineColor="#ffffff"
+            >
+              {`${p.title} · ${formatPrice(p.price)}`}
+            </Text>
           </group>
         )
       })}
