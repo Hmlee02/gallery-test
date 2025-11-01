@@ -9,8 +9,8 @@ export default function ProductsIndexPage() {
         <h1 className="text-3xl font-semibold">Products</h1>
         <p className="text-muted-foreground">Explore the collection in 3D.</p>
       </div>
-      <div className="flex-1 w-full">
-        <ProductList3D products={products} className="w-full h-full rounded-none" />
+      <div className="w-full">
+        <ProductList3D products={products} className="w-full h-screen rounded-none" />
       </div>
     </main>
   )

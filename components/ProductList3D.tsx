@@ -169,7 +169,7 @@ function SceneProducts({ products }: { products: Product[] }) {
 
 export default function ProductList3D({ products, className }: { products: Product[]; className?: string }) {
   return (
-    <div className={`w-full h-full overflow-hidden ${className ?? ''}`}>
+    <div className={`w-full overflow-hidden ${className ?? ''}`} style={{ height: '100vh' }}>
       <Canvas camera={{ position: [0, 0, 6], fov: 55 }} gl={{ antialias: true }} style={{ width: '100%', height: '100%', display: 'block' }}>
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} intensity={0.25} />
