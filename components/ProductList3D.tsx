@@ -40,7 +40,7 @@ function Card({
       onPointerLeave={() => (hovered.current = false)}
     >
       <planeGeometry args={[1.4, 1.0, 1, 1]} />
-      <meshBasicMaterial map={texture} toneMapped={false} />
+      <meshBasicMaterial map={texture} toneMapped={false} side={THREE.DoubleSide} />
     </mesh>
   )
 }
@@ -63,6 +63,13 @@ function SceneProducts({ products }: { products: Product[] }) {
       const vFOV = THREE.MathUtils.degToRad(cam.fov)
       const visibleHeight = 2 * Math.tan(vFOV / 2) * zDepth
       visibleWidth = visibleHeight * (size.width > 0 ? size.width / Math.max(1, size.height) : cam.aspect)
+    } else if ((camera as any).isOrthographicCamera) {
+      const cam = camera as THREE.OrthographicCamera
+      // For orthographic camera, visible span in world units is size / zoom
+      const vW = size.width > 0 ? size.width : 1920
+      const vH = size.height > 0 ? size.height : 1080
+      const visibleHeight = vH / Math.max(1e-6, cam.zoom)
+      visibleWidth = vW / Math.max(1e-6, cam.zoom)
     }
     const gutter = 0.25
     const baseCardWidth = 1.4
@@ -170,7 +177,7 @@ function SceneProducts({ products }: { products: Product[] }) {
 export default function ProductList3D({ products, className }: { products: Product[]; className?: string }) {
   return (
     <div className={`w-full overflow-hidden ${className ?? ''}`} style={{ height: '100vh' }}>
-      <Canvas camera={{ position: [0, 0, 6], fov: 55 }} gl={{ antialias: true }} style={{ width: '100%', height: '100%', display: 'block' }}>
+      <Canvas orthographic camera={{ position: [0, 0, 10], zoom: 100, near: -1000, far: 1000 }} gl={{ antialias: true }} style={{ width: '100%', height: '100%', display: 'block' }}>
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} intensity={0.25} />
         <SceneProducts products={products} />
