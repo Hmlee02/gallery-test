@@ -161,12 +161,7 @@ function SceneProducts({ products }: { products: Product[] }) {
         const cardHeight = 1.0 * scale
         return (
           <group key={p.slug} position={pos} rotation={rot}>
-            <Card texture={tex} position={[0, 0, 0]} rotation={[0, 0, 0]} onClick={handleCardClick(p.slug)} baseScale={scale} />
-            {/* simple label */}
-            <mesh position={[0, -cardHeight * 0.65, 0]}>
-              <planeGeometry args={[1.8 * scale, 0.35 * scale]} />
-              <meshBasicMaterial color="#000000" transparent opacity={0.35} />
-            </mesh>
+            <Card texture={tex} position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} onClick={handleCardClick(p.slug)} baseScale={scale} />
           </group>
         )
       })}
@@ -177,7 +172,17 @@ function SceneProducts({ products }: { products: Product[] }) {
 export default function ProductList3D({ products, className }: { products: Product[]; className?: string }) {
   return (
     <div className={`w-full overflow-hidden ${className ?? ''}`} style={{ height: '100vh' }}>
-      <Canvas orthographic camera={{ position: [0, 0, 10], zoom: 100, near: -1000, far: 1000 }} gl={{ antialias: true }} style={{ width: '100%', height: '100%', display: 'block' }}>
+      <Canvas
+        orthographic
+        camera={{ position: [0, 10, 0], zoom: 120, near: -1000, far: 1000 }}
+        gl={{ antialias: true }}
+        style={{ width: '100%', height: '100%', display: 'block' }}
+        onCreated={({ camera }) => {
+          const cam = camera as THREE.OrthographicCamera
+          cam.up.set(0, 0, -1) // so positive Y is up on screen, looking down -Y
+          cam.lookAt(0, 0, 0)
+        }}
+      >
         <ambientLight intensity={1} />
         <directionalLight position={[5, 5, 5]} intensity={0.25} />
         <SceneProducts products={products} />
