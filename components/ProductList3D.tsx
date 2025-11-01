@@ -25,9 +25,19 @@ function Card({
   useFrame((_s, dt) => {
     if (!mesh.current) return
     // subtle float on hover
-    const target = (hovered.current ? 1.02 : 1) * baseScale
+    const target = (hovered.current ? 1.08 : 1) * baseScale
     mesh.current.scale.x = THREE.MathUtils.lerp(mesh.current.scale.x, target, 6 * dt)
     mesh.current.scale.y = THREE.MathUtils.lerp(mesh.current.scale.y, target, 6 * dt)
+    // lift upward when hovered
+    const currentY = mesh.current.position.y
+    const targetY = hovered.current ? 0.25 * baseScale : 0
+    mesh.current.position.y = THREE.MathUtils.lerp(currentY, targetY, 6 * dt)
+    // draw on top while hovered
+    mesh.current.renderOrder = hovered.current ? 999 : 0
+    const mat = mesh.current.material as THREE.Material
+    if (mat) {
+      mat.depthTest = !hovered.current ? true : false
+    }
   })
 
   return (
