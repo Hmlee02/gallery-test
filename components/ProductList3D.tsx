@@ -73,6 +73,8 @@ function SceneProducts({ products }: { products: Product[] }) {
   const movedRef = useRef(0)
   const { gl, size, camera } = useThree()
   const targetAngleRef = useRef<number | null>(null)
+  const hoveredSlugRef = useRef<string | null>(null)
+  const activeCenteringRef = useRef(false)
   // layout metrics derived from camera frustum
   const layout = useMemo(() => {
     let visibleWidth = 8
@@ -120,6 +122,8 @@ function SceneProducts({ products }: { products: Product[] }) {
       e.preventDefault()
       velocityRef.current += (e.deltaY > 0 ? 1 : -1) * 0.01
       targetAngleRef.current = null
+      activeCenteringRef.current = false
+      hoveredSlugRef.current = null
     }
 
     const down = (e: PointerEvent) => {
@@ -127,6 +131,8 @@ function SceneProducts({ products }: { products: Product[] }) {
       lastXRef.current = e.clientX
       movedRef.current = 0
   targetAngleRef.current = null
+  activeCenteringRef.current = false
+  hoveredSlugRef.current = null
       // capture pointer to continue receiving move events
       ;(e.target as Element).setPointerCapture?.(e.pointerId)
     }
@@ -168,7 +174,16 @@ function SceneProducts({ products }: { products: Product[] }) {
       // shortest angular delta in range [-PI, PI]
       let delta = target - current
       delta = ((delta + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI
+      // ease toward target
       angleRef.current += delta * Math.min(1, dt * 6)
+      // If close enough, snap and release lock
+      if (Math.abs(delta) < 0.01) {
+        angleRef.current = target
+        targetAngleRef.current = null
+        activeCenteringRef.current = false
+      } else {
+        activeCenteringRef.current = true
+      }
       // damp velocity while targeting
       velocityRef.current *= 0.9
     } else {
@@ -196,11 +211,18 @@ function SceneProducts({ products }: { products: Product[] }) {
         const cardHeight = 1.0 * scale
         const setHover = (hover: boolean) => {
           if (hover) {
-            // center this item: angle + ringAngle = PI/2 -> ringAngle = PI/2 - angle
+            // If already centering another card, ignore new enters
+            if (activeCenteringRef.current && hoveredSlugRef.current && hoveredSlugRef.current !== p.slug) return
+            // Lock onto this item and center it
+            hoveredSlugRef.current = p.slug
             targetAngleRef.current = Math.PI / 2 - angle
+            activeCenteringRef.current = true
           } else {
-            // release target, allow inertia or other interaction
-            targetAngleRef.current = null
+            // Only release if this same card was locked and centering is not active
+            if (hoveredSlugRef.current === p.slug && !activeCenteringRef.current) {
+              hoveredSlugRef.current = null
+              targetAngleRef.current = null
+            }
           }
         }
         return (
