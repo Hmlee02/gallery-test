@@ -1,4 +1,5 @@
 import InfiniteGallery from '@/components/InfiniteGallery';
+import Link from 'next/link';
 
 export default function Home() {
 	const sampleImages = [
@@ -14,6 +15,13 @@ export default function Home() {
 
 	return (
 		<main className="min-h-screen ">
+			{/* Fixed nav to products */}
+			<Link
+				href="/products"
+				className="fixed top-4 right-4 z-50 px-3 py-1.5 rounded-md text-sm font-medium bg-black/70 text-white hover:bg-black/80 backdrop-blur shadow"
+			>
+				View Products
+			</Link>
 			<InfiniteGallery
 				images={sampleImages}
 				speed={1.2}
