@@ -25,7 +25,18 @@ export default async function ProductPage({
 
         <section>
           <h1 className="text-3xl font-semibold mb-2">{product.title}</h1>
-          <div className="text-xl mb-4">{formatPrice(product.price)}</div>
+          <div className="text-sm text-muted-foreground mb-2">SKU: {product.sku}</div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="text-xl">{formatPrice(product.price)}</div>
+            {product.rating && (
+              <div className="text-sm text-muted-foreground">★ {product.rating.value.toFixed(1)} ({product.rating.count})</div>
+            )}
+            {typeof product.stock === 'number' && (
+              <span className={`text-xs px-2 py-1 rounded ${product.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+              </span>
+            )}
+          </div>
           <p className="text-muted-foreground mb-6">{product.description}</p>
 
           {product.specs && (
@@ -44,6 +55,15 @@ export default async function ProductPage({
               {product.tags.map((t) => (
                 <span key={t} className="px-2 py-1 rounded bg-black/5 dark:bg-white/10">#{t}</span>
               ))}
+            </div>
+          )}
+
+          {product.shipping && (
+            <div className="mb-6 text-sm text-muted-foreground space-y-1">
+              <div><span className="font-medium text-foreground">Shipping:</span> {product.shipping.delivery ?? '—'}</div>
+              {product.shipping.from && <div>Ships from: {product.shipping.from}</div>}
+              {product.shipping.weight && <div>Weight: {product.shipping.weight}</div>}
+              {product.shipping.returns && <div>Returns: {product.shipping.returns}</div>}
             </div>
           )}
 
