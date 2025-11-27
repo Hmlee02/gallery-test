@@ -236,8 +236,12 @@ function GalleryScene({
 	// Use refs for animation state to avoid re-renders
 	const scrollVelocity = useRef(0);
 	const autoPlay = useRef(true);
-	const lastInteraction = useRef(Date.now());
+	const lastInteraction = useRef(0);
 	const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
+
+	useEffect(() => {
+		lastInteraction.current = Date.now();
+	}, []);
 
 	// Normalize images to objects
 	const normalizedImages = useMemo(
@@ -286,19 +290,9 @@ function GalleryScene({
 	const depthRange = DEFAULT_DEPTH_RANGE;
 
 	// Initialize plane data
-	const planesData = useRef<PlaneData[]>(
-		Array.from({ length: visibleCount }, (_, i) => ({
-			index: i,
-			z: visibleCount > 0 ? ((depthRange / visibleCount) * i) % depthRange : 0,
-			imageIndex: totalImages > 0 ? i % totalImages : 0,
-			x: spatialPositions[i]?.x ?? 0,
-			y: spatialPositions[i]?.y ?? 0,
-		}))
-	);
-
-	// Reset planes when config changes
-	useEffect(() => {
-		planesData.current = Array.from({ length: visibleCount }, (_, i) => ({
+	// Use useMemo to ensure planesData is always in sync with visibleCount during render
+	const planesData = useMemo(() => {
+		return Array.from({ length: visibleCount }, (_, i) => ({
 			index: i,
 			z:
 				visibleCount > 0
@@ -308,7 +302,7 @@ function GalleryScene({
 			x: spatialPositions[i]?.x ?? 0,
 			y: spatialPositions[i]?.y ?? 0,
 		}));
-	}, [depthRange, spatialPositions, totalImages, visibleCount]);
+	}, [visibleCount, depthRange, totalImages, spatialPositions]);
 
 	// Handle scroll input
 	const handleWheel = useCallback(
@@ -384,7 +378,7 @@ function GalleryScene({
 		const totalRange = depthRange;
 		const halfRange = totalRange / 2;
 
-		planesData.current.forEach((plane, i) => {
+		planesData.forEach((plane, i) => {
 			let newZ = plane.z + scrollVelocity.current * delta * 10;
 			let wrapsForward = 0;
 			let wrapsBackward = 0;
@@ -498,7 +492,7 @@ function GalleryScene({
 
 	return (
 		<>
-			{planesData.current.map((plane, i) => {
+			{planesData.map((plane, i) => {
 				const texture = textures[plane.imageIndex];
 				const material = materials[i];
 				const img = normalizedImages[plane.imageIndex];
@@ -528,7 +522,7 @@ function GalleryScene({
 						onClick={() => {
 							// We need to check the CURRENT image index for this plane, not the initial one
 							// because the planes recycle.
-							const currentPlaneData = planesData.current[i];
+							const currentPlaneData = planesData[i];
 							const currentImg = normalizedImages[currentPlaneData.imageIndex];
 
 							if (currentImg && (currentImg as any).href) {
@@ -592,8 +586,10 @@ export default function InfiniteGallery({
 	},
 }: InfiniteGalleryProps) {
 	const [webglSupported, setWebglSupported] = useState(true);
+	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
+		setMounted(true);
 		// Check WebGL support
 		try {
 			const canvas = document.createElement('canvas');
@@ -606,6 +602,10 @@ export default function InfiniteGallery({
 			setWebglSupported(false);
 		}
 	}, []);
+
+	if (!mounted) {
+		return <div className={className} style={style} />;
+	}
 
 	if (!webglSupported) {
 		return (
