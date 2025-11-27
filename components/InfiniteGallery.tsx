@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
+import { useRef, useMemo, useCallback, useState, useEffect, forwardRef, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -61,7 +61,7 @@ interface PlaneData {
 	z: number;
 	imageIndex: number;
 	x: number;
-	y: number; // Added y property for vertical positioning
+	y: number;
 }
 
 const DEFAULT_DEPTH_RANGE = 50;
@@ -164,22 +164,17 @@ const createClothMaterial = () => {
 	});
 };
 
-function ImagePlane({
-	texture,
-	position,
-	scale,
-	material,
-	onClick,
-	isClickable = false,
-}: {
-	texture: THREE.Texture;
-	position: [number, number, number];
-	scale: [number, number, number];
-	material: THREE.ShaderMaterial;
-	onClick?: () => void;
-	isClickable?: boolean;
-}) {
-	const meshRef = useRef<THREE.Mesh>(null);
+const ImagePlane = forwardRef<
+	THREE.Mesh,
+	{
+		texture: THREE.Texture;
+		position: [number, number, number];
+		scale: [number, number, number];
+		material: THREE.ShaderMaterial;
+		onClick?: () => void;
+		isClickable?: boolean;
+	}
+>(({ texture, position, scale, material, onClick, isClickable = false }, ref) => {
 	const [isHovered, setIsHovered] = useState(false);
 
 	useEffect(() => {
@@ -208,7 +203,7 @@ function ImagePlane({
 
 	return (
 		<mesh
-			ref={meshRef}
+			ref={ref}
 			position={position}
 			scale={scale}
 			material={material}
@@ -221,7 +216,8 @@ function ImagePlane({
 			<planeGeometry args={[1, 1, 32, 32]} />
 		</mesh>
 	);
-}
+});
+ImagePlane.displayName = 'ImagePlane';
 
 function GalleryScene({
 	images,
@@ -237,9 +233,11 @@ function GalleryScene({
 		maxBlur: 3.0,
 	},
 }: Omit<InfiniteGalleryProps, 'className' | 'style'>) {
-	const [scrollVelocity, setScrollVelocity] = useState(0);
-	const [autoPlay, setAutoPlay] = useState(true);
+	// Use refs for animation state to avoid re-renders
+	const scrollVelocity = useRef(0);
+	const autoPlay = useRef(true);
 	const lastInteraction = useRef(Date.now());
+	const meshRefs = useRef<(THREE.Mesh | null)[]>([]);
 
 	// Normalize images to objects
 	const normalizedImages = useMemo(
@@ -293,11 +291,12 @@ function GalleryScene({
 			index: i,
 			z: visibleCount > 0 ? ((depthRange / visibleCount) * i) % depthRange : 0,
 			imageIndex: totalImages > 0 ? i % totalImages : 0,
-			x: spatialPositions[i]?.x ?? 0, // Use spatial positions for x
-			y: spatialPositions[i]?.y ?? 0, // Use spatial positions for y
+			x: spatialPositions[i]?.x ?? 0,
+			y: spatialPositions[i]?.y ?? 0,
 		}))
 	);
 
+	// Reset planes when config changes
 	useEffect(() => {
 		planesData.current = Array.from({ length: visibleCount }, (_, i) => ({
 			index: i,
@@ -315,8 +314,8 @@ function GalleryScene({
 	const handleWheel = useCallback(
 		(event: WheelEvent) => {
 			event.preventDefault();
-			setScrollVelocity((prev) => prev + event.deltaY * 0.01 * speed);
-			setAutoPlay(false);
+			scrollVelocity.current += event.deltaY * 0.01 * speed;
+			autoPlay.current = false;
 			lastInteraction.current = Date.now();
 		},
 		[speed]
@@ -326,12 +325,12 @@ function GalleryScene({
 	const handleKeyDown = useCallback(
 		(event: KeyboardEvent) => {
 			if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') {
-				setScrollVelocity((prev) => prev - 2 * speed);
-				setAutoPlay(false);
+				scrollVelocity.current -= 2 * speed;
+				autoPlay.current = false;
 				lastInteraction.current = Date.now();
 			} else if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
-				setScrollVelocity((prev) => prev + 2 * speed);
-				setAutoPlay(false);
+				scrollVelocity.current += 2 * speed;
+				autoPlay.current = false;
 				lastInteraction.current = Date.now();
 			}
 		},
@@ -355,7 +354,7 @@ function GalleryScene({
 	useEffect(() => {
 		const interval = setInterval(() => {
 			if (Date.now() - lastInteraction.current > 3000) {
-				setAutoPlay(true);
+				autoPlay.current = true;
 			}
 		}, 1000);
 		return () => clearInterval(interval);
@@ -363,19 +362,19 @@ function GalleryScene({
 
 	useFrame((state, delta) => {
 		// Apply auto-play
-		if (autoPlay) {
-			setScrollVelocity((prev) => prev + 0.3 * delta);
+		if (autoPlay.current) {
+			scrollVelocity.current += 0.3 * delta;
 		}
 
 		// Damping
-		setScrollVelocity((prev) => prev * 0.95);
+		scrollVelocity.current *= 0.95;
 
 		// Update time uniform for all materials
 		const time = state.clock.getElapsedTime();
 		materials.forEach((material) => {
 			if (material && material.uniforms) {
 				material.uniforms.time.value = time;
-				material.uniforms.scrollForce.value = scrollVelocity;
+				material.uniforms.scrollForce.value = scrollVelocity.current;
 			}
 		});
 
@@ -386,7 +385,7 @@ function GalleryScene({
 		const halfRange = totalRange / 2;
 
 		planesData.current.forEach((plane, i) => {
-			let newZ = plane.z + scrollVelocity * delta * 10;
+			let newZ = plane.z + scrollVelocity.current * delta * 10;
 			let wrapsForward = 0;
 			let wrapsBackward = 0;
 
@@ -409,8 +408,8 @@ function GalleryScene({
 			}
 
 			plane.z = ((newZ % totalRange) + totalRange) % totalRange;
-			plane.x = spatialPositions[i]?.x ?? 0;
-			plane.y = spatialPositions[i]?.y ?? 0;
+			// x and y are constant for the plane index, but we need to ensure they are set
+			// plane.x and plane.y are already set in initialization
 
 			const worldZ = plane.z - halfRange;
 
@@ -422,29 +421,24 @@ function GalleryScene({
 				normalizedPosition >= fadeSettings.fadeIn.start &&
 				normalizedPosition <= fadeSettings.fadeIn.end
 			) {
-				// Fade in: opacity goes from 0 to 1 within the fade in range
 				const fadeInProgress =
 					(normalizedPosition - fadeSettings.fadeIn.start) /
 					(fadeSettings.fadeIn.end - fadeSettings.fadeIn.start);
 				opacity = fadeInProgress;
 			} else if (normalizedPosition < fadeSettings.fadeIn.start) {
-				// Before fade in starts: fully transparent
 				opacity = 0;
 			} else if (
 				normalizedPosition >= fadeSettings.fadeOut.start &&
 				normalizedPosition <= fadeSettings.fadeOut.end
 			) {
-				// Fade out: opacity goes from 1 to 0 within the fade out range
 				const fadeOutProgress =
 					(normalizedPosition - fadeSettings.fadeOut.start) /
 					(fadeSettings.fadeOut.end - fadeSettings.fadeOut.start);
 				opacity = 1 - fadeOutProgress;
 			} else if (normalizedPosition > fadeSettings.fadeOut.end) {
-				// After fade out ends: fully transparent
 				opacity = 0;
 			}
 
-			// Clamp opacity between 0 and 1
 			opacity = Math.max(0, Math.min(1, opacity));
 
 			// Calculate blur based on blur settings
@@ -454,29 +448,24 @@ function GalleryScene({
 				normalizedPosition >= blurSettings.blurIn.start &&
 				normalizedPosition <= blurSettings.blurIn.end
 			) {
-				// Blur in: blur goes from maxBlur to 0 within the blur in range
 				const blurInProgress =
 					(normalizedPosition - blurSettings.blurIn.start) /
 					(blurSettings.blurIn.end - blurSettings.blurIn.start);
 				blur = blurSettings.maxBlur * (1 - blurInProgress);
 			} else if (normalizedPosition < blurSettings.blurIn.start) {
-				// Before blur in starts: full blur
 				blur = blurSettings.maxBlur;
 			} else if (
 				normalizedPosition >= blurSettings.blurOut.start &&
 				normalizedPosition <= blurSettings.blurOut.end
 			) {
-				// Blur out: blur goes from 0 to maxBlur within the blur out range
 				const blurOutProgress =
 					(normalizedPosition - blurSettings.blurOut.start) /
 					(blurSettings.blurOut.end - blurSettings.blurOut.start);
 				blur = blurSettings.maxBlur * blurOutProgress;
 			} else if (normalizedPosition > blurSettings.blurOut.end) {
-				// After blur out ends: full blur
 				blur = blurSettings.maxBlur;
 			}
 
-			// Clamp blur to reasonable values
 			blur = Math.max(0, Math.min(blurSettings.maxBlur, blur));
 
 			// Update material uniforms
@@ -484,6 +473,23 @@ function GalleryScene({
 			if (material && material.uniforms) {
 				material.uniforms.opacity.value = opacity;
 				material.uniforms.blurAmount.value = blur;
+			}
+
+			// Update Mesh directly
+			const mesh = meshRefs.current[i];
+			if (mesh) {
+				mesh.position.set(plane.x, plane.y, worldZ);
+
+				// Update texture if needed
+				const texture = textures[plane.imageIndex];
+				if (texture && material.uniforms.map.value !== texture) {
+					material.uniforms.map.value = texture;
+
+					// Update scale based on new texture aspect ratio
+					const aspect = texture.image ? texture.image.width / texture.image.height : 1;
+					const scale: [number, number, number] = aspect > 1 ? [2 * aspect, 2, 1] : [2, 2 / aspect, 1];
+					mesh.scale.set(scale[0], scale[1], scale[2]);
+				}
 			}
 		});
 	});
@@ -511,16 +517,23 @@ function GalleryScene({
 				return (
 					<ImagePlane
 						key={plane.index}
+						ref={(el) => {
+							meshRefs.current[i] = el;
+						}}
 						texture={texture}
-						position={[plane.x, plane.y, worldZ]} // Position planes relative to camera center
+						position={[plane.x, plane.y, worldZ]}
 						scale={scale}
 						material={material}
 						isClickable={Boolean(img?.href)}
 						onClick={() => {
-							if (img && (img as any).href) {
-								const href = (img as { href?: string }).href;
+							// We need to check the CURRENT image index for this plane, not the initial one
+							// because the planes recycle.
+							const currentPlaneData = planesData.current[i];
+							const currentImg = normalizedImages[currentPlaneData.imageIndex];
+
+							if (currentImg && (currentImg as any).href) {
+								const href = (currentImg as { href?: string }).href;
 								if (href) {
-									// Navigate in the same tab
 									if (typeof window !== 'undefined') {
 										window.location.href = href;
 									}
@@ -602,17 +615,23 @@ export default function InfiniteGallery({
 		);
 	}
 
+	if (images.length === 0) {
+		return <div className={className} style={style} />;
+	}
+
 	return (
 		<div className={className} style={style}>
 			<Canvas
 				camera={{ position: [0, 0, 0], fov: 55 }}
 				gl={{ antialias: true, alpha: true }}
 			>
-				<GalleryScene
-					images={images}
-					fadeSettings={fadeSettings}
-					blurSettings={blurSettings}
-				/>
+				<Suspense fallback={null}>
+					<GalleryScene
+						images={images}
+						fadeSettings={fadeSettings}
+						blurSettings={blurSettings}
+					/>
+				</Suspense>
 			</Canvas>
 		</div>
 	);
