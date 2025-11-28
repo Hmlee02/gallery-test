@@ -11,6 +11,9 @@ export default function Home() {
 		{ src: '/6.webp', alt: 'Image 6', href: '/products/6' },
 		{ src: '/7.webp', alt: 'Image 7', href: '/products/7' },
 		{ src: '/8.webp', alt: 'Image 8', href: '/products/8' },
+		{ src: '/9.png', alt: 'Image 9', href: '/products/9' },
+		{ src: '/10.png', alt: 'Image 10', href: '/products/10' },
+		{ src: '/11.png', alt: 'Image 11', href: '/products/11' },
 	];
 
 	return (
