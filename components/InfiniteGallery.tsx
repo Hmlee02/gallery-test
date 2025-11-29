@@ -6,7 +6,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
-type ImageItem = string | { src: string; alt?: string; href?: string };
+type ImageItem = string | { src: string; alt?: string; href?: string; hueShift?: number };
 
 interface FadeSettings {
 	/** Fade in range as percentage of depth range (0-1) */
@@ -79,6 +79,7 @@ const createClothMaterial = () => {
 			scrollForce: { value: 0.0 },
 			time: { value: 0.0 },
 			isHovered: { value: 0.0 },
+			hueShift: { value: 0.0 },
 		},
 		vertexShader: `
       uniform float scrollForce;
@@ -131,11 +132,23 @@ const createClothMaterial = () => {
       uniform float opacity;
       uniform float blurAmount;
       uniform float scrollForce;
+      uniform float hueShift;
       varying vec2 vUv;
       varying vec3 vNormal;
       
+      vec3 hueShiftColor(vec3 color, float hue) {
+          const vec3 k = vec3(0.57735, 0.57735, 0.57735);
+          float cosAngle = cos(hue);
+          return vec3(color * cosAngle + cross(k, color) * sin(hue) + k * dot(k, color) * (1.0 - cosAngle));
+      }
+      
       void main() {
         vec4 color = texture2D(map, vUv);
+        
+        // Apply hue shift
+        if (hueShift != 0.0) {
+            color.rgb = hueShiftColor(color.rgb, hueShift);
+        }
         
         // Simple blur approximation
         if (blurAmount > 0.0) {
@@ -152,6 +165,11 @@ const createClothMaterial = () => {
             }
           }
           color = blurred / total;
+          
+          // Re-apply hue shift to blurred color if needed
+          if (hueShift != 0.0) {
+            color.rgb = hueShiftColor(color.rgb, hueShift);
+          }
         }
         
         // Add subtle lighting effect based on curving
@@ -499,6 +517,13 @@ function GalleryScene({
 
 				if (!texture || !material) return null;
 
+				// Apply hue shift if present
+				if (material.uniforms && (img as any).hueShift !== undefined) {
+					material.uniforms.hueShift.value = (img as any).hueShift;
+				} else if (material.uniforms) {
+					material.uniforms.hueShift.value = 0.0;
+				}
+
 				const worldZ = plane.z - depthRange / 2;
 
 				// Calculate scale to maintain aspect ratio
@@ -579,8 +604,10 @@ export default function InfiniteGallery({
 	},
 }: InfiniteGalleryProps) {
 	const [webglSupported, setWebglSupported] = useState(true);
+	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
+		setMounted(true);
 		// Check WebGL support
 		try {
 			const canvas = document.createElement('canvas');
@@ -593,6 +620,10 @@ export default function InfiniteGallery({
 			setWebglSupported(false);
 		}
 	}, []);
+
+	if (!mounted) {
+		return <div className={className} style={style} />;
+	}
 
 	if (!webglSupported) {
 		return (
