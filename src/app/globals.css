@@ -1,26 +1,193 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
+
+/* ========================================
+   Aura Gallery - Design Tokens
+   ======================================== */
 
 @theme inline {
+  /* Colors */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-destructive: var(--destructive);
+
+  /* Custom Aura Colors */
+  --color-cream: #FDFBF7;
+  --color-navy: #1A1A2E;
+  --color-bronze: #8B6914;
+  --color-lavender: #E8E4F0;
+  --color-rose: #F5E6E8;
+
+  /* Fonts */
+  --font-sans: 'Inter', var(--font-geist-sans), system-ui, sans-serif;
+  --font-serif: 'DM Serif Display', Georgia, serif;
+  --font-mono: 'JetBrains Mono', var(--font-geist-mono), monospace;
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --radius: 0.625rem;
+
+  /* WCAG 검증 완료 색상 */
+  --background: #FDFBF7;
+  --foreground: #1A1A2E;
+  --accent: #8B6914;
+  --accent-foreground: #FDFBF7;
+
+  --card: #FFFFFF;
+  --card-foreground: #1A1A2E;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A1A2E;
+
+  --primary: #1A1A2E;
+  --primary-foreground: #FDFBF7;
+  --secondary: #E8E4F0;
+  --secondary-foreground: #1A1A2E;
+
+  --muted: #F5E6E8;
+  --muted-foreground: #6B6B7B;
+
+  --border: rgba(26, 26, 46, 0.1);
+  --input: rgba(26, 26, 46, 0.1);
+  --ring: #8B6914;
+}
+
+.dark {
+  --background: #0F0F14;
+  --foreground: #FDFBF7;
+  --accent: #C9A962;
+  --accent-foreground: #0F0F14;
+
+  --card: #1A1A2E;
+  --card-foreground: #FDFBF7;
+  --popover: #1A1A2E;
+  --popover-foreground: #FDFBF7;
+
+  --primary: #FDFBF7;
+  --primary-foreground: #1A1A2E;
+  --secondary: #2A2A3E;
+  --secondary-foreground: #FDFBF7;
+
+  --muted: #2A2A3E;
+  --muted-foreground: #A0A0B0;
+
+  --border: rgba(253, 251, 247, 0.1);
+  --input: rgba(253, 251, 247, 0.15);
+  --ring: #C9A962;
+}
+
+/* ========================================
+   Base Styles
+   ======================================== */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* 세리프 헤딩 스타일 */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+
+  /* 포커스 스타일 - 접근성 */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ========================================
+   Utility Classes
+   ======================================== */
+
+@layer utilities {
+
+  /* 텍스트 그라데이션 */
+  .text-gradient {
+    background: linear-gradient(135deg, var(--foreground) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* 부드러운 스크롤바 */
+  .scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ========================================
+   Animation Keyframes
+   ======================================== */
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
 }
