@@ -1,8 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import type { Project, Image } from "@prisma/client";
 
-type ProjectWithImages = Project & { images: Image[] };
+type ProjectWithImages = {
+    id: string;
+    slug: string;
+    title: string;
+    category: string;
+    year: number;
+    thumbnail: string | null;
+    description: string | null;
+    published: boolean;
+    order: number;
+    createdAt: Date;
+    updatedAt: Date;
+    images: { id: string; url: string; alt: string | null; order: number; projectId: string }[];
+};
 
 export default async function AdminProjectsPage() {
     const projects: ProjectWithImages[] = await prisma.project.findMany({
