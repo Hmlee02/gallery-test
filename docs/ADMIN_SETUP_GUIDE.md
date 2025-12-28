@@ -244,7 +244,53 @@ npx prisma studio
 | `src/lib/auth.ts` | 인증 로직 |
 | `src/lib/prisma.ts` | 데이터베이스 연결 |
 | `src/middleware.ts` | 페이지 접근 제어 |
+| `src/middleware.ts` | 페이지 접근 제어 |
 | `.env.local` | 환경 변수 (비밀 정보) |
+
+---
+
+## 🚨 트러블슈팅 가이드 (Vercel 배포 시 주의사항)
+
+다음은 실제 개발 과정에서 발생했던 오류들과 해결 방법입니다.
+
+### 1. Prisma Client 타입 오류 (Build Error)
+**증상**:  
+`Type error: Module '"@prisma/client"' has no exported member 'PrismaClient'.`
+
+**원인**:  
+Vercel은 빌드 시 `npm install`만 수행하므로, `postinstall` 스크립트가 없다면 Prisma Client가 생성되지 않습니다.
+
+**해결**:  
+`package.json`에 `postinstall` 스크립트를 추가합니다.
+```json
+"scripts": {
+  "postinstall": "prisma generate"
+}
+```
+
+### 2. Edge Middleware 오류 (Runtime Error)
+**증상**:  
+`Module not found: Can't resolve '.prisma/client/default'`
+
+**원인**:  
+Next.js의 Middleware는 **Edge Runtime**에서 실행되는데, 여기서 Node.js API에 의존하는 Prisma Client를 직접 사용할 수 없습니다.
+
+**해결**:  
+인증 설정(`src/lib/auth.config.ts`)을 분리하여 Middleware는 Prisma에 의존하지 않는 순수 로직만 사용하도록 수정합니다.
+- `auth.config.ts`: 순수 JWT/세션 로직 (Edge 호환)
+- `auth.ts`: Prisma Adapter 포함 (Node.js 전용)
+
+### 3. 로그인 시 500 Server Error
+**증상**:  
+로그인 시도 시 `/api/auth/error` 페이지로 리다이렉트되며 `Server error` 메시지 표시.
+
+**원인**:  
+Vercel 환경 변수에 보안 키(`AUTH_SECRET`)가 누락되었을 때 발생합니다. (NextAuth v5 필수 사항)
+
+**해결**:  
+Vercel 프로젝트 설정 > Environment Variables에서 `AUTH_SECRET`을 추가합니다.
+- Key: `AUTH_SECRET`
+- Value: 긴 랜덤 문자열 (예: `openssl rand -base64 32`)
 
 ---
 
