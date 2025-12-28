@@ -42,8 +42,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
         className={`${inter.variable} ${dmSerif.variable} ${jetbrainsMono.variable} antialiased min-h-screen flex flex-col`}
       >
         {/* 접근성: 스킵 링크 */}

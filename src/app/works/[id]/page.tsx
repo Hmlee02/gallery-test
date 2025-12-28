@@ -123,7 +123,7 @@ export default function WorkDetailPage() {
                                     index % 2 === 1 ? "md:mt-16" : "" // 엇갈린 레이아웃
                                 )}
                             >
-                                <div className="aspect-[4/5]">
+                                <div className="relative aspect-[4/5]">
                                     <Image
                                         src={imageSrc.startsWith("http") ? imageSrc : artwork.thumbnail}
                                         alt={`${artwork.title} - Detail ${index + 1}`}
