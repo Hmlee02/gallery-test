@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import type { Project, Image } from "@prisma/client";
+
+type ProjectWithImages = Project & { images: Image[] };
 
 export default async function AdminProjectsPage() {
-    const projects = await prisma.project.findMany({
+    const projects: ProjectWithImages[] = await prisma.project.findMany({
         include: { images: true },
         orderBy: { createdAt: "desc" },
     });
@@ -82,8 +85,8 @@ export default async function AdminProjectsPage() {
                                     <td className="px-6 py-4">
                                         <span
                                             className={`inline-flex px-2 py-1 text-xs rounded-full ${project.published
-                                                    ? "bg-green-500/20 text-green-500"
-                                                    : "bg-yellow-500/20 text-yellow-500"
+                                                ? "bg-green-500/20 text-green-500"
+                                                : "bg-yellow-500/20 text-yellow-500"
                                                 }`}
                                         >
                                             {project.published ? "Published" : "Draft"}
