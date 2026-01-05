@@ -32,13 +32,23 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { title, slug, category, year, thumbnail, description, images } = body;
 
-        // 유효성 검사
-        if (!title || !slug || !category || !year || !thumbnail || !description) {
+        // 유효성 검사 - 필드별 상세 메시지
+        const missingFields: string[] = [];
+        if (!title) missingFields.push("title");
+        if (!slug) missingFields.push("slug");
+        if (!category) missingFields.push("category");
+        if (!year) missingFields.push("year");
+        if (!description) missingFields.push("description");
+
+        if (missingFields.length > 0) {
             return NextResponse.json(
-                { error: "Missing required fields" },
+                { error: `Missing required fields: ${missingFields.join(", ")}` },
                 { status: 400 }
             );
         }
+
+        // thumbnail이 없으면 첫 번째 이미지 사용
+        const finalThumbnail = thumbnail || images?.[0]?.url || "";
 
         // 중복 slug 체크
         const existing = await prisma.project.findUnique({ where: { slug } });
@@ -55,7 +65,7 @@ export async function POST(request: Request) {
                 slug,
                 category,
                 year: parseInt(year),
-                thumbnail,
+                thumbnail: finalThumbnail,
                 description,
                 images: images?.length
                     ? {

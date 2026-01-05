@@ -46,6 +46,12 @@ export async function PUT(
         const body = await request.json();
         const { title, slug, category, year, thumbnail, description, images, published } = body;
 
+        // thumbnail이 없으면 첫 번째 이미지 또는 기존 thumbnail 사용
+        const finalThumbnail = thumbnail || images?.[0]?.url || "";
+
+        // year 안전하게 파싱 (숫자 또는 문자열 모두 처리)
+        const parsedYear = typeof year === 'number' ? year : parseInt(year, 10);
+
         // 기존 이미지 삭제 후 새로 생성
         await prisma.image.deleteMany({ where: { projectId: id } });
 
@@ -55,8 +61,8 @@ export async function PUT(
                 title,
                 slug,
                 category,
-                year: parseInt(year),
-                thumbnail,
+                year: parsedYear,
+                thumbnail: finalThumbnail,
                 description,
                 published: published ?? true,
                 images: images?.length
@@ -75,8 +81,10 @@ export async function PUT(
         return NextResponse.json(project);
     } catch (error) {
         console.error("Failed to update project:", error);
+        // 더 상세한 에러 메시지 반환
+        const errorMessage = error instanceof Error ? error.message : "Failed to update project";
         return NextResponse.json(
-            { error: "Failed to update project" },
+            { error: errorMessage },
             { status: 500 }
         );
     }
