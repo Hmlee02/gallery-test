@@ -89,3 +89,41 @@ export async function POST(request: Request) {
         );
     }
 }
+
+// PUT /api/projects - 순서 일괄 변경 (인증 필요)
+export async function PUT(request: Request) {
+    try {
+        const session = await auth();
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { orders } = body as { orders: { id: string; order: number }[] };
+
+        if (!orders || !Array.isArray(orders)) {
+            return NextResponse.json(
+                { error: "Invalid orders array" },
+                { status: 400 }
+            );
+        }
+
+        // 트랜잭션으로 모든 순서 업데이트
+        await prisma.$transaction(
+            orders.map(({ id, order }) =>
+                prisma.project.update({
+                    where: { id },
+                    data: { order },
+                })
+            )
+        );
+
+        return NextResponse.json({ success: true });
+    } catch (error) {
+        console.error("Failed to reorder projects:", error);
+        return NextResponse.json(
+            { error: "Failed to reorder projects" },
+            { status: 500 }
+        );
+    }
+}

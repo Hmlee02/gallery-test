@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import ProjectList from "@/components/admin/ProjectList";
 
 type ProjectWithImages = {
     id: string;
@@ -19,7 +20,7 @@ type ProjectWithImages = {
 export default async function AdminProjectsPage() {
     const projects: ProjectWithImages[] = await prisma.project.findMany({
         include: { images: true },
-        orderBy: { createdAt: "desc" },
+        orderBy: { order: "asc" },
     });
 
     return (
@@ -50,76 +51,7 @@ export default async function AdminProjectsPage() {
                     </Link>
                 </div>
             ) : (
-                <div className="border border-border/50 rounded-lg overflow-hidden">
-                    <table className="w-full">
-                        <thead className="bg-secondary/30">
-                            <tr>
-                                <th className="text-left px-6 py-4 text-sm font-medium">
-                                    Title
-                                </th>
-                                <th className="text-left px-6 py-4 text-sm font-medium">
-                                    Category
-                                </th>
-                                <th className="text-left px-6 py-4 text-sm font-medium">
-                                    Year
-                                </th>
-                                <th className="text-left px-6 py-4 text-sm font-medium">
-                                    Status
-                                </th>
-                                <th className="text-left px-6 py-4 text-sm font-medium">
-                                    Images
-                                </th>
-                                <th className="text-right px-6 py-4 text-sm font-medium">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {projects.map((project) => (
-                                <tr
-                                    key={project.id}
-                                    className="border-t border-border/50 hover:bg-secondary/20 transition-colors"
-                                >
-                                    <td className="px-6 py-4">
-                                        <Link
-                                            href={`/admin/projects/${project.id}/edit`}
-                                            className="font-medium hover:text-accent transition-colors"
-                                        >
-                                            {project.title}
-                                        </Link>
-                                    </td>
-                                    <td className="px-6 py-4 text-muted-foreground">
-                                        {project.category}
-                                    </td>
-                                    <td className="px-6 py-4 font-mono text-sm">
-                                        {project.year}
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span
-                                            className={`inline-flex px-2 py-1 text-xs rounded-full ${project.published
-                                                ? "bg-green-500/20 text-green-500"
-                                                : "bg-yellow-500/20 text-yellow-500"
-                                                }`}
-                                        >
-                                            {project.published ? "Published" : "Draft"}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-muted-foreground">
-                                        {project.images.length}
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <Link
-                                            href={`/admin/projects/${project.id}/edit`}
-                                            className="text-sm text-accent hover:underline"
-                                        >
-                                            Edit
-                                        </Link>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                <ProjectList initialProjects={projects} />
             )}
         </div>
     );
